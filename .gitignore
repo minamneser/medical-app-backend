@@ -1,0 +1,21 @@
+# Ignore the .vs folder (Visual Studio settings)
+.vs/
+
+# Ignore build output folders
+[Bb]in/
+[Oo]bj/
+
+# Ignore user-specific files
+*.user
+*.suo
+*.vsix
+
+# Ignore NuGet packages folder (optional, but good practice)
+packages/
+
+# OS Generated files
+Thumbs.db
+Desktop.ini
+
+# Rider
+.idea
