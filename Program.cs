@@ -88,6 +88,8 @@ namespace ModelTest
 
             app.UseHttpsRedirection();
 
+            app.UseRouting();
+
             app.UseAuthentication();
 
             app.UseAuthorization();

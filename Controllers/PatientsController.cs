@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ModelTest.Data.Interfaces;
+using ModelTest.DTOs;
 using ModelTest.Models;
 using System.Security.Claims;
 
@@ -38,7 +39,8 @@ namespace ModelTest.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPatientById(int id)
         {
-            var patient = await _repository.FindByIdAsync(id);
+            var patients = await _repository.GetAllAsync();
+            var patient = patients.FirstOrDefault(p => p.Id == id);
             if (patient == null)
             {
                 return NotFound();
@@ -47,7 +49,7 @@ namespace ModelTest.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreatePatient([FromBody] Patient patient)
+        public async Task<IActionResult> CreatePatient([FromBody] CreatePatientDto patientDto)
         {
             if (!ModelState.IsValid)
             {
@@ -65,8 +67,20 @@ namespace ModelTest.Controllers
                 return Unauthorized("Invalid Doctor ID format."); 
             }
 
-            patient.DoctorId = doctorId;
-            patient.DateOfCreation = DateTime.UtcNow;
+            var patient = new Patient
+            {
+                Name = patientDto.Name,
+                Age = patientDto.Age,
+                PhoneNumber = patientDto.PhoneNumber,
+                GPD = patientDto.GPD,
+                GRDA = patientDto.GRDA,
+                IPD = patientDto.IPD,
+                IRDA = patientDto.IRDA,
+                Seizure = patientDto.Seizure,
+                Other = patientDto.Other,
+                DoctorId = doctorId, 
+                DateOfCreation = DateTime.UtcNow
+            };
 
             await _repository.AddAsync(patient);
             return CreatedAtAction(nameof(GetPatientById), new { id = patient.Id }, patient);
