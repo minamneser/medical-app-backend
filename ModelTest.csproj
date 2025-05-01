@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
       <PrivateAssets>all</PrivateAssets>
@@ -21,11 +22,16 @@
     </PackageReference>
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
     <PackageReference Include="Python.Runtime" Version="2.7.9" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="wwwroot\EEGmodelV2.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Update="wwwroot\model_name.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

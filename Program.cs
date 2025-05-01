@@ -1,11 +1,12 @@
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ModelTest.Data.DataBase;
-using ModelTest.Data.Interfaces;
 using ModelTest.Data.Repository;
+using ModelTest.Data.Services.DoctorService;
+using ModelTest.Data.Services.PatientService;
+using ModelTest.Data.UnitOfWork;
 using System.Text;
 
 namespace ModelTest
@@ -19,18 +20,32 @@ namespace ModelTest
             // Add services to the container.
 
             builder.Services.AddDbContext<AppDbContext>(op =>
-            op.UseSqlServer(builder.Configuration.GetConnectionString("myCon"))
+                op.UseSqlServer(builder.Configuration.GetConnectionString("myCon"))
             );
 
             builder.Services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-
+            builder.Services.AddTransient<IDoctorService, DoctorService>();
+            builder.Services.AddTransient<IPatientService, PatientService>();
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+            // Enable CORS for all origins
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader().AllowCredentials();
+                });
+            });
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Your API", Version = "v1" });
-                // Add security definition
+
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
@@ -40,7 +55,6 @@ namespace ModelTest
                     Scheme = "Bearer"
                 });
 
-                // Add security requirement
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement {
                     {
                         new OpenApiSecurityScheme
@@ -70,9 +84,8 @@ namespace ModelTest
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidateAudience = true,
                     ValidAudience = builder.Configuration["Jwt:Audience"],
-                    ValidateLifetime = true, // Check token expiration
-                    ClockSkew = TimeSpan.Zero // Remove delay of token when expire
-
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
                 };
             });
 
@@ -84,16 +97,17 @@ namespace ModelTest
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-            app.UseStaticFiles();
 
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
 
             app.UseRouting();
 
+            // Use CORS before authentication and authorization
+            app.UseCors("AllowAll");
+
             app.UseAuthentication();
-
             app.UseAuthorization();
-
 
             app.MapControllers();
 

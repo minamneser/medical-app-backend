@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using ModelTest.Data.Interfaces;
-using ModelTest.Data.Repository;
+using ModelTest.Data.Services.DoctorService;
 using ModelTest.DTOs;
 using ModelTest.Models;
 using System.ComponentModel.DataAnnotations;
@@ -12,19 +12,20 @@ using System.Text;
 
 namespace ModelTest.Controllers
 {
+    
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly IGenericRepository<Doctor> _repository;
+        private readonly IDoctorService _doctorService;
         private readonly IConfiguration _configuration;
-        public AuthController(IGenericRepository<Doctor> repository, IConfiguration configuration)
+        public AuthController(IDoctorService doctorService, IConfiguration configuration)
         {
             _configuration = configuration;
-            _repository = repository;
+            _doctorService = doctorService;
         }
 
-
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] DoctorRegisterDto registerDto)
         {
@@ -33,7 +34,7 @@ namespace ModelTest.Controllers
                 return BadRequest(ModelState);
             }
 
-            var existingDoctor = await _repository.GetAllAsync();
+            var existingDoctor = await _doctorService.GetAllDoctorsAsync();
             if (existingDoctor.Any(d => d.Email == registerDto.Email))
             {
                 return BadRequest("Email already registered.");
@@ -49,14 +50,14 @@ namespace ModelTest.Controllers
                 Name = registerDto.Name,
             };
 
-            await _repository.AddAsync(doctor);
+            await _doctorService.AddDoctorAsync(doctor);
             return Ok(new { message = "Doctor registered successfully." });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] DoctorLoginDto loginDto)
         {
-            var doctors = await _repository.GetAllAsync();
+            var doctors = await _doctorService.GetAllDoctorsAsync();
             var doctor = doctors.FirstOrDefault(d => d.Email == loginDto.Email);
 
             if (doctor == null)
@@ -100,6 +101,59 @@ namespace ModelTest.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
             return tokenHandler.WriteToken(token);
+        }
+
+        [HttpPut("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var doctorIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (doctorIdClaim == null)
+            {
+                return Unauthorized("Doctor ID claim not found.");
+            }
+
+            if (!int.TryParse(doctorIdClaim.Value, out int doctorId))
+            {
+                return Unauthorized("Invalid Doctor ID format.");
+            }
+
+            var result = await _doctorService.ChangePasswordAsync(changePasswordDto, doctorId);
+            return result;
+        }
+        [HttpDelete("id")]
+        public async Task<IActionResult> DeleteDoctor(int id)
+        {
+            var doctor = await _doctorService.GetDoctorByIdAsync(id);
+            if (doctor == null)
+            {
+                return NotFound();
+            }
+
+            await _doctorService.DeleteDoctorAsync(id);
+            return NoContent();
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateDoctor(int id, [FromBody] Doctor doctor)
+        {
+            if (id != doctor.Id)
+            {
+                return BadRequest();
+            }
+
+            var existingDoctor = await _doctorService.GetDoctorByIdAsync(id);
+            if (existingDoctor == null)
+            {
+                return NotFound();
+            }
+
+            await _doctorService.UpdateDoctorAsync(doctor);
+            return NoContent();
         }
     }
 }

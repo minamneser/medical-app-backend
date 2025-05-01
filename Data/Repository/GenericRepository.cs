@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ModelTest.Data.DataBase;
-using ModelTest.Data.Interfaces;
 
 namespace ModelTest.Data.Repository
 {

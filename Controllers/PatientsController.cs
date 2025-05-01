@@ -2,7 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ModelTest.Data.Interfaces;
+using ModelTest.Data.Repository;
+using ModelTest.Data.Services.PatientService;
 using ModelTest.DTOs;
 using ModelTest.Models;
 using System.Security.Claims;
@@ -14,10 +15,10 @@ namespace ModelTest.Controllers
     [Authorize]
     public class PatientsController : ControllerBase
     {
-        private readonly IGenericRepository<Patient> _repository;
-        public PatientsController(IGenericRepository<Patient> repository)
+        private readonly IPatientService _patientService;
+        public PatientsController(IPatientService patientService)
         {
-            _repository = repository;
+            _patientService = patientService;
         }
 
 
@@ -30,7 +31,7 @@ namespace ModelTest.Controllers
                 return Unauthorized("Invalid Doctor ID");
             }
 
-            var allPatients = await _repository.GetAllAsync(); 
+            var allPatients = await _patientService.GetAllPatientsAsync(); 
             var filteredPatients = allPatients.Where(p => p.DoctorId == doctorId);
 
             return Ok(filteredPatients);
@@ -39,7 +40,7 @@ namespace ModelTest.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPatientById(int id)
         {
-            var patients = await _repository.GetAllAsync();
+            var patients = await _patientService.GetAllPatientsAsync();
             var patient = patients.FirstOrDefault(p => p.Id == id);
             if (patient == null)
             {
@@ -82,7 +83,7 @@ namespace ModelTest.Controllers
                 DateOfCreation = DateTime.UtcNow
             };
 
-            await _repository.AddAsync(patient);
+            await _patientService.AddPatientAsync(patient);
             return CreatedAtAction(nameof(GetPatientById), new { id = patient.Id }, patient);
         }
 
@@ -102,11 +103,11 @@ namespace ModelTest.Controllers
 
             try
             {
-                await _repository.UpdateAsync(patient);
+                await _patientService.UpdatePatientAsync(patient);
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (await _repository.FindByIdAsync(id) == null)
+                if (await _patientService.GetPatientByIdAsync(id) == null)
                 {
                     return NotFound();
                 }
@@ -123,13 +124,13 @@ namespace ModelTest.Controllers
         [HttpDelete("id")]
         public async Task<IActionResult> DeletePatient(int id)
         {
-            var patient = await _repository.FindByIdAsync(id);
+            var patient = await _patientService.GetPatientByIdAsync(id);
             if (patient == null)
             {
                 return NotFound();
             }
 
-            await _repository.DeleteAsync(id);
+            await _patientService.DeletePatientAsync(id);
             return NoContent();
         }
     }
